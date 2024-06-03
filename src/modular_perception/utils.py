@@ -4,7 +4,7 @@ from typing import Any, Tuple
 
 import gymnasium as gym
 
-from modular_perception.modules.sensor_module import SensorAgentModule
+from modular_perception.modules.sensor_module import SensorModule
 
 
 class ObservationCaptureWrapper(gym.ObservationWrapper):
@@ -28,10 +28,10 @@ class ObservationCaptureWrapper(gym.ObservationWrapper):
 
 def wrap_gym_env_with_sensor_module(
     env: gym.Env, sensor_name: str = "gym_observation"
-) -> Tuple[gym.Env, SensorAgentModule]:
+) -> Tuple[gym.Env, SensorModule]:
     """Create a wrapped verison of the environment, and a sensor module, so
     that whenever the original env resets or steps, the observations is piped
     to the sensory module."""
     env = ObservationCaptureWrapper(env)
-    sensor_module = SensorAgentModule({sensor_name: env.get_last_observation})
+    sensor_module = SensorModule({sensor_name: env.get_last_observation})
     return env, sensor_module

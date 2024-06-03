@@ -19,7 +19,7 @@ FeatureDetector: TypeAlias = Callable[[Object, str], float]
 PredicateInterpretation: TypeAlias = Callable[[FeatureDetector, Unpack[Object]], bool]
 
 
-class LocalPredicateAgentModule(PerceptionModule[LocalPredicateQuery, Set[GroundAtom]]):
+class LocalPredicateModule(PerceptionModule[LocalPredicateQuery, Set[GroundAtom]]):
     """Computes predicates based on object-centric features only."""
 
     def __init__(
@@ -48,7 +48,7 @@ class LocalPredicateAgentModule(PerceptionModule[LocalPredicateQuery, Set[Ground
         return atoms
 
 
-class ImagePredicateAgentModule(PerceptionModule[ImagePredicateQuery, Set[GroundAtom]]):
+class ImagePredicateModule(PerceptionModule[ImagePredicateQuery, Set[GroundAtom]]):
     """Computes predicates based on images and object-centric features."""
 
     def __init__(

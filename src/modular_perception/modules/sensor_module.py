@@ -8,7 +8,7 @@ from modular_perception.query_types import SensorQuery
 SensorOutput: TypeAlias = Any
 
 
-class SensorAgentModule(PerceptionModule[SensorQuery, SensorOutput]):
+class SensorModule(PerceptionModule[SensorQuery, SensorOutput]):
     """A module with Python functions that return sensor readings."""
 
     def __init__(

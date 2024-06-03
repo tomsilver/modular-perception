@@ -46,11 +46,12 @@ class ModularPerceiver:
     def get_response(
         self,
         query: Hashable,
-        sender: PerceptionModule,
+        sender: PerceptionModule | None = None,
     ) -> Any:
         """Find a module that can answer the query and generate a response.
 
-        The sender is provided just for logging purposes.
+        The sender is provided just for logging purposes. A sender of
+        None means that the request came from outside the perceiver.
         """
         response = None
         responder: PerceptionModule | None = None
