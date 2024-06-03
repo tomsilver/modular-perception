@@ -12,7 +12,8 @@ dependencies = [
    "matplotlib",
    "numpy",
    "tomsutils@git+https://github.com/tomsilver/toms-utils.git",
-
+   "gymnasium[classic-control]",
+   "relational_structs@git+https://github.com/tomsilver/relational-structs.git",
 ]
 
 [project.optional-dependencies]
