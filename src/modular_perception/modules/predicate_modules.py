@@ -1,25 +1,43 @@
 """Modules with functions for detecting ground atoms given predicates."""
 
-from typing import Callable, Collection, Dict, Hashable, Set, TypeAlias
+from dataclasses import dataclass
+from typing import Callable, Collection, Dict, FrozenSet, Hashable, Set, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
-from relational_structs import GroundAtom, Object, Predicate
+from relational_structs import GroundAtom, Object, Predicate, Type
 from relational_structs.utils import get_object_combinations
 from typing_extensions import Unpack
 
 from modular_perception.perceiver import ModuleCannotAnswerQuery, PerceptionModule
 from modular_perception.query_types import (
-    ImagePredicateQuery,
-    LocalPredicateQuery,
+    AllGroundAtomsQuery,
+    AllObjectDetectionQuery,
     ObjectFeatureQuery,
+    PredicatesQuery,
 )
 
 FeatureDetector: TypeAlias = Callable[[Object, str], float]
 PredicateInterpretation: TypeAlias = Callable[[FeatureDetector, Unpack[Object]], bool]
 
 
-class LocalPredicateModule(PerceptionModule[LocalPredicateQuery, Set[GroundAtom]]):
+@dataclass(frozen=True)
+class _LocalPredicatesQuery:
+    """Necessary for dispatching."""
+
+    predicates: FrozenSet[Predicate]
+    objects: FrozenSet[Object]
+
+
+@dataclass(frozen=True)
+class _ImagePredicatesQuery:
+    """Necessary for dispatching."""
+
+    predicates: FrozenSet[Predicate]
+    objects: FrozenSet[Object]
+
+
+class LocalPredicateModule(PerceptionModule[PredicatesQuery, Set[GroundAtom]]):
     """Computes predicates based on object-centric features only."""
 
     def __init__(
@@ -32,7 +50,7 @@ class LocalPredicateModule(PerceptionModule[LocalPredicateQuery, Set[GroundAtom]
         super().__init__(*args, **kwargs)
 
     def _get_response(self, query: Hashable) -> Set[GroundAtom]:
-        if not isinstance(query, LocalPredicateQuery):
+        if not isinstance(query, _LocalPredicatesQuery):
             raise ModuleCannotAnswerQuery
         predicates, objects = query.predicates, query.objects
         atoms: Set[GroundAtom] = set()
@@ -48,7 +66,7 @@ class LocalPredicateModule(PerceptionModule[LocalPredicateQuery, Set[GroundAtom]
         return atoms
 
 
-class ImagePredicateModule(PerceptionModule[ImagePredicateQuery, Set[GroundAtom]]):
+class ImagePredicateModule(PerceptionModule[PredicatesQuery, Set[GroundAtom]]):
     """Computes predicates based on images and object-centric features."""
 
     def __init__(
@@ -71,9 +89,55 @@ class ImagePredicateModule(PerceptionModule[ImagePredicateQuery, Set[GroundAtom]
         super().__init__(*args, **kwargs)
 
     def _get_response(self, query: Hashable) -> Set[GroundAtom]:
-        if not isinstance(query, ImagePredicateQuery):
+        if not isinstance(query, _ImagePredicatesQuery):
             raise ModuleCannotAnswerQuery
         predicates, objects = query.predicates, query.objects
         detect_feature = lambda o, f: self._send_query(ObjectFeatureQuery(o, f))
         get_image = lambda: self._send_query(self._image_query)
         return self._detector(predicates, objects, detect_feature, get_image)
+
+
+class PredicateDispatchModule(PerceptionModule[PredicatesQuery, Set[GroundAtom]]):
+    """Separates predicates into the right types."""
+
+    def __init__(
+        self,
+        local_predicates: Collection[Predicate],
+        image_predicates: Collection[Predicate],
+        object_types: Collection[Type],
+        *args,
+        **kwargs,
+    ) -> None:
+        self._local_predicates = frozenset(local_predicates)
+        self._image_predicates = frozenset(image_predicates)
+        self._object_types = frozenset(object_types)
+        assert not (
+            self._local_predicates & self._image_predicates
+        ), "Predicates must be either local or image, not both"
+        super().__init__(*args, **kwargs)
+
+    def _get_response(self, query: Hashable) -> Set[GroundAtom]:
+        if isinstance(query, PredicatesQuery):
+            predicates, objects = query.predicates, query.objects
+            local_predicates: Set[Predicate] = set()
+            image_predicates: Set[Predicate] = set()
+            for predicate in predicates:
+                if predicate in self._local_predicates:
+                    local_predicates.add(predicate)
+                elif predicate in self._image_predicates:
+                    image_predicates.add(predicate)
+                else:
+                    raise ModuleCannotAnswerQuery
+        elif isinstance(query, AllGroundAtomsQuery):
+            local_predicates = set(self._local_predicates)
+            image_predicates = set(self._image_predicates)
+            objects = self._send_query(AllObjectDetectionQuery(self._object_types))
+        else:
+            raise ModuleCannotAnswerQuery
+        local_response = self._send_query(
+            _LocalPredicatesQuery(frozenset(local_predicates), objects)
+        )
+        image_response = self._send_query(
+            _ImagePredicatesQuery(frozenset(image_predicates), objects)
+        )
+        return local_response | image_response
