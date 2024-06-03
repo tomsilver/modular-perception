@@ -1,24 +1,20 @@
 """Example showing multiple levels of relational state abstractions."""
 
-from typing import Set
-
 import numpy as np
-from relational_structs import GroundAtom, Predicate, Type
+from relational_structs import Predicate, Type
 
 from modular_perception.modules.object_feature_module import ObjectFeatureModule
 from modular_perception.modules.predicate_modules import (
     ImagePredicateModule,
     LocalPredicateModule,
+    PredicateDispatchModule,
 )
 from modular_perception.modules.sensor_module import SensorModule
 from modular_perception.perceiver import (
     ModularPerceiver,
-    ModuleCannotAnswerQuery,
-    PerceptionModule,
 )
 from modular_perception.query_types import (
-    ImagePredicateQuery,
-    LocalPredicateQuery,
+    PredicatesQuery,
     SensorQuery,
 )
 
@@ -135,30 +131,15 @@ def test_relational_state_abstractions():
         image_query=image_query,
     )
 
-    # Custom module that returns all true ground atoms in the given state.
-    class _AllAtomsQuery:
-        """Query for producing all ground atoms for all known predicates."""
-
-    class _AllAtomsModule(PerceptionModule[_AllAtomsQuery, Set[GroundAtom]]):
-
-        def __init__(
-            self, known_objects, local_predicates, image_predicates, *args, **kwargs
-        ) -> None:
-            self._known_objects = known_objects
-            self._local_predicates = local_predicates
-            self._image_predicates = image_predicates
-            super().__init__(*args, **kwargs)
-
-        def _get_response(self, query):
-            if not isinstance(query, _AllAtomsQuery):
-                raise ModuleCannotAnswerQuery
-            local_ground_atoms = self._send_query(
-                LocalPredicateQuery(self._local_predicates, self._known_objects)
-            )
-            image_ground_atoms = self._send_query(
-                ImagePredicateQuery(self._image_predicates, self._known_objects)
-            )
-            return local_ground_atoms | image_ground_atoms
+    # We need to create a separate module that combines the two predicate
+    # modules because there needs to be a mechanism for splitting up the query
+    # into the respective predicate types.
+    local_predicates = frozenset(predicate_interpretations)
+    image_predicates = frozenset({InOneThickEmptySpace, InTwoThickEmptySpace})
+    predicate_dispatch_module = PredicateDispatchModule(
+        local_predicates=local_predicates,
+        image_predicates=image_predicates,
+    )
 
     # Finalize the perceiver.
     known_objects = frozenset(
@@ -171,26 +152,21 @@ def test_relational_state_abstractions():
             Letter("F"),
         }
     )  # note: G not included
-    local_predicates = frozenset(predicate_interpretations)
-    image_predicates = frozenset({InOneThickEmptySpace, InTwoThickEmptySpace})
-    output_module = _AllAtomsModule(
-        known_objects,
-        local_predicates,
-        image_predicates,
-    )
+    predicates = local_predicates | image_predicates
     perceiver = ModularPerceiver(
         {
             sensor_module,
             object_feature_module,
             local_predicate_module,
             image_predicate_module,
-            output_module,
+            predicate_dispatch_module,
         }
     )
 
     seed = 0
     perceiver.reset(seed)
-    result = perceiver.get_response(_AllAtomsQuery())
+    query = PredicatesQuery(predicates, known_objects)
+    result = perceiver.get_response(query)
 
     assert (
         str(sorted(result))

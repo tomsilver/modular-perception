@@ -26,16 +26,8 @@ class ObjectFeatureQuery:
 
 
 @dataclass(frozen=True)
-class LocalPredicateQuery:
-    """A query to get all ground atoms for given local predicates."""
-
-    predicates: FrozenSet[Predicate]
-    objects: FrozenSet[Object]
-
-
-@dataclass(frozen=True)
-class ImagePredicateQuery:
-    """A query to get all ground atoms for given image predicates."""
+class PredicatesQuery:
+    """A query to get all ground atoms for given predicates."""
 
     predicates: FrozenSet[Predicate]
     objects: FrozenSet[Object]
