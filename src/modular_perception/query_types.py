@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import FrozenSet
 
-from relational_structs import Object, Predicate
+from relational_structs import Object, Predicate, Type
 
 
 @dataclass(frozen=True)
@@ -15,6 +15,13 @@ class SensorQuery:
     """
 
     name: str
+
+
+@dataclass(frozen=True)
+class AllObjectDetectionQuery:
+    """A query to detect all seen objects."""
+
+    object_types: FrozenSet[Type]
 
 
 @dataclass(frozen=True)
@@ -31,3 +38,8 @@ class PredicatesQuery:
 
     predicates: FrozenSet[Predicate]
     objects: FrozenSet[Object]
+
+
+@dataclass(frozen=True)
+class AllGroundAtomsQuery:
+    """A query to get all ground atoms for all known predicates and objects."""

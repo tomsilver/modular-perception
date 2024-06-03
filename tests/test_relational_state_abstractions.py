@@ -3,6 +3,7 @@
 import numpy as np
 from relational_structs import Predicate, Type
 
+from modular_perception.modules.object_detection_module import ObjectDetectionModule
 from modular_perception.modules.object_feature_module import ObjectFeatureModule
 from modular_perception.modules.predicate_modules import (
     ImagePredicateModule,
@@ -14,7 +15,7 @@ from modular_perception.perceiver import (
     ModularPerceiver,
 )
 from modular_perception.query_types import (
-    PredicatesQuery,
+    AllGroundAtomsQuery,
     SensorQuery,
 )
 
@@ -46,6 +47,20 @@ def test_relational_state_abstractions():
     sensor_module = SensorModule({"camera": _get_observation})
     image_query = SensorQuery("camera")
 
+    # Create an object detection module.
+    Letter = Type("Letter")
+    object_types = {Letter}
+
+    # Detect all letters except for X and G.
+    def _detect_objects(img, types):
+        assert set(types) == object_types
+        letters = set(np.unique(img)) - {"X", "G"}
+        return frozenset(Letter(l) for l in letters)
+
+    object_detection_module = ObjectDetectionModule(
+        _detect_objects, sensory_input_query=image_query
+    )
+
     # Create an object feature detection module.
     def _feature_detector(img, obj, feature):
         assert feature in ("r", "c")
@@ -63,7 +78,6 @@ def test_relational_state_abstractions():
 
     # Create a "local" predicate classifier module. Local means using only
     # object-centric features.
-    Letter = Type("Letter")
     IsDirectlyAbove = Predicate("IsDirectlyAbove", [Letter, Letter])
 
     def _IsDirectlyAbove_holds(get_feature, obj1, obj2):
@@ -139,24 +153,15 @@ def test_relational_state_abstractions():
     predicate_dispatch_module = PredicateDispatchModule(
         local_predicates=local_predicates,
         image_predicates=image_predicates,
+        object_types=object_types,
     )
 
     # Finalize the perceiver.
-    known_objects = frozenset(
-        {
-            Letter("A"),
-            Letter("B"),
-            Letter("C"),
-            Letter("D"),
-            Letter("E"),
-            Letter("F"),
-        }
-    )  # note: G not included
-    predicates = local_predicates | image_predicates
     perceiver = ModularPerceiver(
         {
             sensor_module,
             object_feature_module,
+            object_detection_module,
             local_predicate_module,
             image_predicate_module,
             predicate_dispatch_module,
@@ -165,7 +170,7 @@ def test_relational_state_abstractions():
 
     seed = 0
     perceiver.reset(seed)
-    query = PredicatesQuery(predicates, known_objects)
+    query = AllGroundAtomsQuery()
     result = perceiver.get_response(query)
 
     assert (
