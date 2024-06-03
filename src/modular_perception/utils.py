@@ -1,10 +1,37 @@
-"""Utilities."""
+"""Utility functions."""
 
-from typing import Set
+from typing import Any, Tuple
 
-from modular_perception.structs import Dog
+import gymnasium as gym
+
+from modular_perception.modules.sensor_module import SensorModule
 
 
-def get_good_dogs_of_breed(dogs: Set[Dog], breed: str) -> Set:
-    """Get all good dogs of the specified breed."""
-    return {d for d in dogs if d.is_good() and d.breed == breed}
+class ObservationCaptureWrapper(gym.ObservationWrapper):
+    """Helper for wrap_gym_env_with_sensor_module()."""
+
+    def __init__(
+        self,
+        env: gym.Env,
+    ) -> None:
+        super().__init__(env)
+        self._last_observation = None
+
+    def observation(self, observation: Any) -> Any:
+        self._last_observation = observation
+        return observation
+
+    def get_last_observation(self) -> Any:
+        """Expose the last observation from reset() or step()."""
+        return self._last_observation
+
+
+def wrap_gym_env_with_sensor_module(
+    env: gym.Env, sensor_name: str = "gym_observation"
+) -> Tuple[gym.Env, SensorModule]:
+    """Create a wrapped verison of the environment, and a sensor module, so
+    that whenever the original env resets or steps, the observations is piped
+    to the sensory module."""
+    env = ObservationCaptureWrapper(env)
+    sensor_module = SensorModule({sensor_name: env.get_last_observation})
+    return env, sensor_module
