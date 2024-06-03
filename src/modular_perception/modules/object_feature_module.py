@@ -11,7 +11,7 @@ from modular_perception.query_types import ObjectFeatureQuery
 Feature: TypeAlias = Any
 
 
-class ObjectFeatureAgentModule(PerceptionModule[ObjectFeatureQuery, Feature]):
+class ObjectFeatureModule(PerceptionModule[ObjectFeatureQuery, Feature]):
     """A module with functions for detecting object features."""
 
     def __init__(
