@@ -5,7 +5,7 @@ from typing import Callable, Collection, Dict, FrozenSet, Hashable, Set, TypeAli
 
 import numpy as np
 from numpy.typing import NDArray
-from relational_structs import GroundAtom, Object, Predicate, Type
+from relational_structs import GroundAtom, Object, Predicate
 from relational_structs.utils import get_object_combinations
 from typing_extensions import Unpack
 
@@ -104,13 +104,11 @@ class PredicateDispatchModule(PerceptionModule[PredicatesQuery, Set[GroundAtom]]
         self,
         local_predicates: Collection[Predicate],
         image_predicates: Collection[Predicate],
-        object_types: Collection[Type],
         *args,
         **kwargs,
     ) -> None:
         self._local_predicates = frozenset(local_predicates)
         self._image_predicates = frozenset(image_predicates)
-        self._object_types = frozenset(object_types)
         assert not (
             self._local_predicates & self._image_predicates
         ), "Predicates must be either local or image, not both"
@@ -131,7 +129,7 @@ class PredicateDispatchModule(PerceptionModule[PredicatesQuery, Set[GroundAtom]]
         elif isinstance(query, AllGroundAtomsQuery):
             local_predicates = set(self._local_predicates)
             image_predicates = set(self._image_predicates)
-            objects = self._send_query(AllObjectDetectionQuery(self._object_types))
+            objects = self._send_query(AllObjectDetectionQuery())
         else:
             raise ModuleCannotAnswerQuery
         local_response = self._send_query(

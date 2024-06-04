@@ -49,11 +49,9 @@ def test_relational_state_abstractions():
 
     # Create an object detection module.
     Letter = Type("Letter")
-    object_types = {Letter}
 
     # Detect all letters except for X and G.
-    def _detect_objects(img, types):
-        assert set(types) == object_types
+    def _detect_objects(img):
         letters = set(np.unique(img)) - {"X", "G"}
         return frozenset(Letter(l) for l in letters)
 
@@ -153,7 +151,6 @@ def test_relational_state_abstractions():
     predicate_dispatch_module = PredicateDispatchModule(
         local_predicates=local_predicates,
         image_predicates=image_predicates,
-        object_types=object_types,
     )
 
     # Finalize the perceiver.
