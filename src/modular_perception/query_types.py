@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import FrozenSet
 
-from relational_structs import Object, Predicate, Type
+from relational_structs import Object, Predicate
 
 
 @dataclass(frozen=True)
@@ -20,8 +20,6 @@ class SensorQuery:
 @dataclass(frozen=True)
 class AllObjectDetectionQuery:
     """A query to detect all seen objects."""
-
-    object_types: FrozenSet[Type]
 
 
 @dataclass(frozen=True)

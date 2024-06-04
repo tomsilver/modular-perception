@@ -1,8 +1,8 @@
 """A module with functions for detecting objects of given types."""
 
-from typing import Callable, Collection, FrozenSet, Hashable
+from typing import Callable, FrozenSet, Hashable
 
-from relational_structs import Object, Type
+from relational_structs import Object
 
 from modular_perception.modules.sensor_module import SensorOutput
 from modular_perception.perceiver import ModuleCannotAnswerQuery, PerceptionModule
@@ -15,7 +15,7 @@ class ObjectDetectionModule(PerceptionModule[AllObjectDetectionQuery, Object]):
 
     def __init__(
         self,
-        object_detector: Callable[[SensorOutput, Collection[Type]], FrozenSet[Object]],
+        object_detector: Callable[[SensorOutput], FrozenSet[Object]],
         sensory_input_query: Hashable,
         *args,
         **kwargs,
@@ -30,4 +30,4 @@ class ObjectDetectionModule(PerceptionModule[AllObjectDetectionQuery, Object]):
         # Get the sensory input.
         sensory_input = self._send_query(self._sensory_input_query)
         # Run detection.
-        return self._object_detector(sensory_input, query.object_types)
+        return self._object_detector(sensory_input)
